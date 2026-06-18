@@ -5,7 +5,6 @@ from fastapi.responses import FileResponse
 import os
 
 from config.settings import settings
-from routes.chat_routes import router as chat_router
 from routes.pipeline_routes import router as pipeline_router
 from services.storage import init_db
 
@@ -22,7 +21,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(chat_router, prefix="/chat", tags=["Chat"])
 app.include_router(pipeline_router, prefix="/pipeline", tags=["Pipeline"])
 
 # Mount static files for the SPA frontend
