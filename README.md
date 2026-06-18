@@ -77,10 +77,19 @@ DEFAULT_LLM_PROVIDER=mistral
 From the project root:
 
 ```powershell
+# Clone repository
+git clone <repo-url>
+
+# Frontend
+cd frontend
+npm install
+npm run dev
+
+# Backend (new terminal)
 cd backend
-# Activate virtual environment
+python -m venv venv
 .\venv\Scripts\activate
-# Start Uvicorn
+pip install -r requirements.txt
 uvicorn app:app --reload
 ```
 * The backend will run on `http://127.0.0.1:8000/`.
