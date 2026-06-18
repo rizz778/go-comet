@@ -4,6 +4,8 @@ import json
 from graph.state import PipelineState
 from config.settings import settings
 
+#Rule basded validator no LLM (may cause hallucination)
+
 def load_rules() -> dict:
     """Loads rules from config or falls back to defaults."""
     if os.path.exists(settings.rules_path):

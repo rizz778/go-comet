@@ -31,6 +31,10 @@ def db_saver_node(state: PipelineState) -> PipelineState:
         "logs": logs
     }
 
+
+# minimalistic graph  construction extract-> validate -> route -> save to db
+
+
 pipeline_builder = StateGraph(PipelineState)
 pipeline_builder.add_node("extract", extract_agent)
 pipeline_builder.add_node("validate", validator_agent)

@@ -5,6 +5,7 @@ from config.settings import settings
 from graph.graph import pipeline_graph
 
 async def process_upload(file: UploadFile) -> dict:
+    
     # 1. Validate file extension
     allowed_extensions = (".pdf", ".png", ".jpg", ".jpeg")
     if not file.filename.lower().endswith(allowed_extensions):
