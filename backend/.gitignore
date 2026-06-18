@@ -1,0 +1,34 @@
+# Local Environment Configuration (Contains secret API keys)
+.env
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# Databases (SQLite)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+backend/data/
+
+# Uploaded Files
+backend/data/uploads/
+uploads/
+
+# Python Cache and Compilation
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS-specific files
+.DS_Store
+Thumbs.db

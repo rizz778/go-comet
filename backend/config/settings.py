@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     anthropic_api_key: str | None = None
     mistral_api_key: str | None = None
+    gemini_api_key: str | None = None
 
     # Provider selection: "openai" | "anthropic" | "mistral"
     default_llm_provider: str = "mistral"
@@ -17,6 +18,7 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     anthropic_model: str = "claude-sonnet-4-5"
     mistral_model: str = "mistral-large-latest"
+    gemini_model: str = "gemini-2.5-flash"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
