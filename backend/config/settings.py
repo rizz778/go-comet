@@ -4,7 +4,7 @@ class Settings(BaseSettings):
     app_name: str = "Nova Chat Backend"
     debug: bool = True
     allowed_origins: list[str] = ["*"]
-
+    rules_path: str = "config/rules.json"
     # API Keys
     openai_api_key: str | None = None
     anthropic_api_key: str | None = None
