@@ -1,122 +1,133 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from 'react';
+import { Sidebar } from './components/SideBar';
+import { AnalyticsCards } from './components/AnalyticsCards';
+import { AuditDesk } from './pages/AuditDesk';
+import { HistoryRegistry } from './pages/HistoryRegistry';
+import { NLQueryAssistant } from './pages/NLQueryAssistant';
+import type { PipelineRun, AnalyticsResponse } from './types/pipeline';
+import { fetchHistory } from './api/historyApi';
+import { fetchAnalytics } from './api/analyticsApi';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'query'>('dashboard');
+  const [activeRun, setActiveRun] = useState<PipelineRun | null>(null);
+  const [historyRuns, setHistoryRuns] = useState<PipelineRun[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Helper to load run history and aggregate dashboard stats
+  const loadHistoryAndStats = async () => {
+    setLoadingHistory(true);
+    try {
+      const [historyData, analyticsData] = await Promise.all([
+        fetchHistory(),
+        fetchAnalytics()
+      ]);
+      setHistoryRuns(historyData);
+      setAnalytics(analyticsData);
+    } catch (err) {
+      console.error('Failed to sync history and analytics:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // Sync dashboard data on mount
+  useEffect(() => {
+    loadHistoryAndStats();
+  }, []);
+
+  // When clicking an audit run from the Registry table, load it into the workspace
+  const handleSelectRun = (run: PipelineRun) => {
+    setActiveRun(run);
+    setActiveTab('dashboard');
+  };
+
+  // When a pipeline upload run finishes or operator overrides are saved, refresh metrics
+  const handleDataRefresh = () => {
+    loadHistoryAndStats();
+  };
+
+  const getHeaderSubText = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return 'Process incoming trade documentation and verify compliance.';
+      case 'history':
+        return 'Historical log of all document verification pipeline runs.';
+      case 'query':
+        return 'Query sqlite run history logs using natural language.';
+      default:
+        return '';
+    }
+  };
+
+  const getHeaderTitle = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return 'Audit Desk';
+      case 'history':
+        return 'Run Registry';
+      case 'query':
+        return 'NL Query Assistant';
+      default:
+        return '';
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="flex h-screen w-screen overflow-hidden bg-[#0B0F19] text-slate-100 font-sans">
+      {/* Navigation Sidebar */}
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      <div className="ticks"></div>
+      {/* Main Workspace Frame */}
+      <main className="flex-1 p-8 flex flex-col gap-6 overflow-y-auto h-full">
+        {/* Header */}
+        <header className="flex justify-between items-center shrink-0">
+          <div>
+            <h1 className="font-outfit text-2xl font-bold tracking-tight text-white">
+              {getHeaderTitle()}
+            </h1>
+            <p className="text-slate-400 text-xs mt-0.5">
+              {getHeaderSubText()}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 bg-emerald-500/5 border border-emerald-500/10 px-3.5 py-1.5 rounded-full text-[10px] font-semibold text-emerald-400 tracking-wide shadow-sm">
+            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
+            <span>Nova Core Connected</span>
+          </div>
+        </header>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {/* Dynamic Panel Views */}
+        {activeTab === 'dashboard' && (
+          <div className="flex flex-col gap-6">
+            <AnalyticsCards stats={analytics} />
+            <AuditDesk
+              activeRun={activeRun}
+              setActiveRun={setActiveRun}
+              onRunCompleted={handleDataRefresh}
+            />
+          </div>
+        )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        {activeTab === 'history' && (
+          <div className="flex-1 flex w-full">
+            <HistoryRegistry
+              runs={historyRuns}
+              loading={loadingHistory}
+              onRefresh={loadHistoryAndStats}
+              onSelectRun={handleSelectRun}
+            />
+          </div>
+        )}
+
+        {activeTab === 'query' && (
+          <div className="flex-1 flex w-full">
+            <NLQueryAssistant />
+          </div>
+        )}
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;

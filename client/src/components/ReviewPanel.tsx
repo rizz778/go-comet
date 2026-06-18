@@ -9,6 +9,8 @@ interface ReviewPanelProps {
 }
 
 export const ReviewPanel: React.FC<ReviewPanelProps> = ({ run, onRunUpdated }) => {
+    const runId = run ? (run.id || (run as any).run_id) : 0;
+    const status = run ? (run.status || 'pending_review') : 'pending_review';
     const [fields, setFields] = useState<Record<string, string>>({});
     const [emailBody, setEmailBody] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -68,8 +70,8 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ run, onRunUpdated }) =
         setMessage(null);
         try {
             const editedPayload = buildEditedDataPayload();
-            await updateStatus(run.id, {
-                status: run.status,
+            await updateStatus(runId, {
+                status: status,
                 edited_data: editedPayload,
                 amendment_draft: emailBody || null
             });
@@ -87,7 +89,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ run, onRunUpdated }) =
         setMessage(null);
         try {
             const editedPayload = buildEditedDataPayload();
-            await updateStatus(run.id, {
+            await updateStatus(runId, {
                 status: 'approved',
                 edited_data: editedPayload,
                 amendment_draft: emailBody || null
@@ -106,7 +108,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ run, onRunUpdated }) =
         setMessage(null);
         try {
             const editedPayload = buildEditedDataPayload();
-            await updateStatus(run.id, {
+            await updateStatus(runId, {
                 status: 'amended',
                 edited_data: editedPayload,
                 amendment_draft: emailBody
@@ -176,14 +178,14 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ run, onRunUpdated }) =
                     <h2 className="font-outfit text-xl font-bold tracking-tight text-white mb-0.5" id="review-filename">
                         {run.filename}
                     </h2>
-                    <span className="text-xs text-slate-400 font-mono" id="review-run-id">Run ID: #{run.id}</span>
+                    <span className="text-xs text-slate-400 font-mono" id="review-run-id">Run ID: #{runId}</span>
                 </div>
                 <div className="flex gap-2">
                     <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${getDecisionBadgeClass(run.decision)}`}>
                         {run.decision.replace(/_/g, ' ')}
                     </span>
-                    <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(run.status)}`}>
-                        {run.status.replace(/_/g, ' ')}
+                    <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(status)}`}>
+                        {status.replace(/_/g, ' ')}
                     </span>
                 </div>
             </div>
