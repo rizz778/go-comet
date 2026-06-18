@@ -77,13 +77,6 @@ DEFAULT_LLM_PROVIDER=mistral
 From the project root:
 
 ```powershell
-# Clone repository
-git clone <repo-url>
-
-# Frontend
-cd frontend
-npm install
-npm run dev
 
 # Backend (new terminal)
 cd backend
