@@ -42,6 +42,7 @@ export interface RuleDetail {
     expected?: any;
     expected_prefixes?: string[];
     expected_max?: number;
+    expected_pattern?: string;
 }
 
 export interface RulesResponse {
