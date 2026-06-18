@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     debug: bool = True
     allowed_origins: list[str] = ["*"]
     rules_path: str = "config/rules.json"
+    db_path: str = "data/nova_pipeline.db"
+    upload_dir: str = "data/uploads"
     # API Keys
     openai_api_key: str | None = None
     anthropic_api_key: str | None = None
