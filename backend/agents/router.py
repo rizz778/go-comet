@@ -4,17 +4,36 @@ from config.llm import get_llm
 from schemas.router_schemas import RouterResponse
 from prompts.router_prompts import ROUTER_SYSTEM_PROMPT
 
-def decide_lane(validation_results: dict) -> str:
+def decide_lane(validation_results: dict, cross_doc_results: dict | None = None) -> str:
     """Deterministically selects the next workflow lane."""
-    # Check if there is even one mismatch -> go to amendment draft
-    if any(res.get("result") == "mismatch" for res in validation_results.values()):
+    # Detect if validation_results is nested (filenames map to dicts of fields)
+    is_nested = False
+    if validation_results:
+        first_val = list(validation_results.values())[0]
+        if isinstance(first_val, dict) and any(isinstance(v, dict) and "result" in v for v in first_val.values()):
+            is_nested = True
+            
+    # Flatten validation results
+    all_individual_results = []
+    if is_nested:
+        for doc_res in validation_results.values():
+            all_individual_results.extend(doc_res.values())
+    else:
+        all_individual_results = list(validation_results.values())
+        
+    # 1. Any individual field mismatch -> amendment_request
+    if any(res.get("result") == "mismatch" for res in all_individual_results):
         return "amendment_request"
         
-    # Check if there is any uncertainty -> flag for human review
-    if any(res.get("result") == "uncertain" for res in validation_results.values()):
+    # 2. Cross-document consistency failure -> amendment_request
+    if cross_doc_results and not cross_doc_results.get("is_consistent", True):
+        return "amendment_request"
+        
+    # 3. Any individual field uncertainty -> flag_review
+    if any(res.get("result") == "uncertain" for res in all_individual_results):
         return "flag_review"
         
-    # Everything is matching -> auto-approve
+    # 4. Otherwise -> auto_approve
     return "auto_approve"
 
 def router_agent(state: PipelineState) -> PipelineState:
@@ -22,14 +41,15 @@ def router_agent(state: PipelineState) -> PipelineState:
     logs.append("Router Agent: Running deterministic lane decision...")
     
     validation_results = state["validation_results"]
+    cross_doc_results = state.get("cross_doc_results")
     
     # 1. Deterministic Lane Choice
-    decision = decide_lane(validation_results)
+    decision = decide_lane(validation_results, cross_doc_results)
     logs.append(f"Router Agent: Decided lane '{decision}' based on rules.")
     
-    logs.append("Router Agent: Invoking Mistral to generate reasoning and draft...")
+    logs.append("Router Agent: Invoking LLM to generate reasoning and draft...")
     
-    # 2. Invoke Mistral for reasoning and draft
+    # 2. Invoke LLM for reasoning and draft
     llm = get_llm()
     reasoning = ""
     amendment_draft = ""
@@ -40,7 +60,10 @@ def router_agent(state: PipelineState) -> PipelineState:
     Here is the field-by-field Validation Results:
     {json.dumps(validation_results, indent=2)}
     
-    Write the reasoning and the draft message.
+    Here is the Cross-Document Consistency Results:
+    {json.dumps(cross_doc_results, indent=2)}
+    
+    Write the reasoning and the draft message. If there are cross-document discrepancies, list them clearly in the reasoning and draft message.
     """
     
     try:
@@ -67,6 +90,8 @@ def router_agent(state: PipelineState) -> PipelineState:
         Decision: {decision}
         Validation Results:
         {json.dumps(validation_results, indent=2)}
+        Cross-Document Consistency Results:
+        {json.dumps(cross_doc_results, indent=2)}
         """
         try:
             response = llm.invoke([{"role": "user", "content": fallback_prompt}])

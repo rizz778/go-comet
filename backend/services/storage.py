@@ -36,9 +36,28 @@ def init_db():
             edited_data TEXT
         )
     """)
+    
+    # Dynamically alter table to add columns if they don't exist
+    try:
+        cursor.execute("ALTER TABLE pipeline_runs ADD COLUMN cross_doc_results TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE pipeline_runs ADD COLUMN source TEXT DEFAULT 'manual_upload'")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE pipeline_runs ADD COLUMN email_sender TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        cursor.execute("ALTER TABLE pipeline_runs ADD COLUMN email_metadata_json TEXT")
+    except sqlite3.OperationalError:
+        pass
+        
     conn.commit()
     conn.close()
-
+ 
 def save_pipeline_run(
     filename: str,
     extracted_data: dict,
@@ -46,7 +65,11 @@ def save_pipeline_run(
     decision: str,
     decision_reason: str,
     amendment_draft: str | None,
-    status: str = "pending_review"
+    status: str = "pending_review",
+    cross_doc_results: dict | None = None,
+    source: str = "manual_upload",
+    email_sender: str | None = None,
+    email_metadata_json: str | None = None
 ) -> int:
     """Saves a run log to the SQLite table and returns the row ID."""
     conn = get_db_connection()
@@ -57,8 +80,9 @@ def save_pipeline_run(
     cursor.execute("""
         INSERT INTO pipeline_runs (
             filename, upload_time, extracted_data, validation_results, 
-            decision, decision_reason, amendment_draft, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            decision, decision_reason, amendment_draft, status, 
+            cross_doc_results, source, email_sender, email_metadata_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         filename,
         upload_time,
@@ -67,14 +91,18 @@ def save_pipeline_run(
         decision,
         decision_reason,
         amendment_draft,
-        status
+        status,
+        json.dumps(cross_doc_results or {"is_consistent": True, "discrepancies": []}),
+        source,
+        email_sender,
+        email_metadata_json
     ))
     
     run_id = cursor.lastrowid
     conn.commit()
     conn.close()
     return run_id
-
+ 
 def get_pipeline_run(run_id: int) -> dict | None:
     """Retrieves a single run log by its ID."""
     conn = get_db_connection()
@@ -86,6 +114,20 @@ def get_pipeline_run(run_id: int) -> dict | None:
     if not row:
         return None
         
+    # Helper to safely extract column with fallback
+    def get_col(r, key, default=None):
+        try:
+            return r[key]
+        except (IndexError, KeyError):
+            return default
+            
+    cross_doc_raw = get_col(row, "cross_doc_results")
+    source_val = get_col(row, "source", "manual_upload")
+    email_sender_val = get_col(row, "email_sender")
+    email_meta_raw = get_col(row, "email_metadata_json")
+    
+    meta = json.loads(email_meta_raw) if email_meta_raw else {}
+    
     return {
         "id": row["id"],
         "filename": row["filename"],
@@ -96,9 +138,15 @@ def get_pipeline_run(run_id: int) -> dict | None:
         "decision_reason": row["decision_reason"],
         "amendment_draft": row["amendment_draft"],
         "status": row["status"],
-        "edited_data": json.loads(row["edited_data"]) if row["edited_data"] else None
+        "edited_data": json.loads(row["edited_data"]) if row["edited_data"] else None,
+        "cross_doc_results": json.loads(cross_doc_raw) if cross_doc_raw else {"is_consistent": True, "discrepancies": []},
+        "source": source_val,
+        "email_sender": email_sender_val,
+        "email_subject": meta.get("subject"),
+        "email_body": meta.get("email_body"),
+        "received_at": meta.get("received_at")
     }
-
+ 
 def get_all_runs() -> list[dict]:
     """Retrieves all pipeline run logs in descending order."""
     conn = get_db_connection()
@@ -107,8 +155,22 @@ def get_all_runs() -> list[dict]:
     rows = cursor.fetchall()
     conn.close()
     
+    # Helper to safely extract column with fallback
+    def get_col(r, key, default=None):
+        try:
+            return r[key]
+        except (IndexError, KeyError):
+            return default
+            
     runs = []
     for row in rows:
+        cross_doc_raw = get_col(row, "cross_doc_results")
+        source_val = get_col(row, "source", "manual_upload")
+        email_sender_val = get_col(row, "email_sender")
+        email_meta_raw = get_col(row, "email_metadata_json")
+        
+        meta = json.loads(email_meta_raw) if email_meta_raw else {}
+        
         runs.append({
             "id": row["id"],
             "filename": row["filename"],
@@ -119,7 +181,13 @@ def get_all_runs() -> list[dict]:
             "decision_reason": row["decision_reason"],
             "amendment_draft": row["amendment_draft"],
             "status": row["status"],
-            "edited_data": json.loads(row["edited_data"]) if row["edited_data"] else None
+            "edited_data": json.loads(row["edited_data"]) if row["edited_data"] else None,
+            "cross_doc_results": json.loads(cross_doc_raw) if cross_doc_raw else {"is_consistent": True, "discrepancies": []},
+            "source": source_val,
+            "email_sender": email_sender_val,
+            "email_subject": meta.get("subject"),
+            "email_body": meta.get("email_body"),
+            "received_at": meta.get("received_at")
         })
     return runs
 
