@@ -6,6 +6,7 @@ import os
 
 from config.settings import settings
 from routes.pipeline_routes import router as pipeline_router
+from routes.trigger_routes import router as trigger_router
 from services.storage import init_db
 from services.watcher import start_watcher
 
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 app.include_router(pipeline_router, prefix="/pipeline", tags=["Pipeline"])
+app.include_router(trigger_router, prefix="/pipeline", tags=["Email Trigger"])
 
 # Mount static files for the SPA frontend
 client_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "client"))
