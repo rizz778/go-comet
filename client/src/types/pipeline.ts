@@ -23,18 +23,36 @@ export interface ValidationResult {
     reason: string;
 }
 
+export interface CrossDocDiscrepancy {
+    field: string;
+    values: Record<string, string>;
+    reason: string;
+}
+
+export interface CrossDocResults {
+    is_consistent: boolean;
+    discrepancies: CrossDocDiscrepancy[];
+}
+
 export interface PipelineRun {
     id: number;
     filename: string;
+    filenames?: string[];
     upload_time: string;
-    extracted_data: TradeDocumentExtraction;
-    validation_results: Record<string, ValidationResult>;
+    extracted_data: TradeDocumentExtraction | Record<string, TradeDocumentExtraction>;
+    validation_results: Record<string, ValidationResult> | Record<string, Record<string, ValidationResult>>;
+    cross_doc_results?: CrossDocResults;
     decision: 'auto_approve' | 'flag_review' | 'amendment_request';
     decision_reason: string;
     amendment_draft: string | null;
     status: 'pending_review' | 'approved' | 'amended';
-    edited_data: TradeDocumentExtraction | null;
+    edited_data: TradeDocumentExtraction | Record<string, TradeDocumentExtraction> | null;
     logs?: string[];
+    source?: 'inbox' | 'manual_upload';
+    email_sender?: string | null;
+    email_subject?: string | null;
+    email_body?: string | null;
+    received_at?: string | null;
 }
 
 export interface RuleDetail {
