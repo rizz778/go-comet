@@ -191,6 +191,95 @@ def get_all_runs() -> list[dict]:
         })
     return runs
 
+def get_incoming_runs() -> list[dict]:
+    """Retrieves all unprocessed inbox runs (status = 'pending_review', source = 'inbox')."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM pipeline_runs WHERE source = 'inbox' AND status = 'pending_review' ORDER BY id DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    
+    # Helper to safely extract column with fallback
+    def get_col(r, key, default=None):
+        try:
+            return r[key]
+        except (IndexError, KeyError):
+            return default
+            
+    runs = []
+    for row in rows:
+        cross_doc_raw = get_col(row, "cross_doc_results")
+        source_val = get_col(row, "source", "manual_upload")
+        email_sender_val = get_col(row, "email_sender")
+        email_meta_raw = get_col(row, "email_metadata_json")
+        
+        meta = json.loads(email_meta_raw) if email_meta_raw else {}
+        
+        runs.append({
+            "id": row["id"],
+            "filename": row["filename"],
+            "upload_time": row["upload_time"],
+            "extracted_data": json.loads(row["extracted_data"]),
+            "validation_results": json.loads(row["validation_results"]),
+            "decision": row["decision"],
+            "decision_reason": row["decision_reason"],
+            "amendment_draft": row["amendment_draft"],
+            "status": row["status"],
+            "edited_data": json.loads(row["edited_data"]) if row["edited_data"] else None,
+            "cross_doc_results": json.loads(cross_doc_raw) if cross_doc_raw else {"is_consistent": True, "discrepancies": []},
+            "source": source_val,
+            "email_sender": email_sender_val,
+            "email_subject": meta.get("subject"),
+            "email_body": meta.get("email_body"),
+            "received_at": meta.get("received_at")
+        })
+    return runs
+
+def get_processed_runs() -> list[dict]:
+    """Retrieves all processed/resolved inbox runs (status != 'pending_review', source = 'inbox')."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM pipeline_runs WHERE source = 'inbox' AND status != 'pending_review' ORDER BY id DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    
+    # Helper to safely extract column with fallback
+    def get_col(r, key, default=None):
+        try:
+            return r[key]
+        except (IndexError, KeyError):
+            return default
+            
+    runs = []
+    for row in rows:
+        cross_doc_raw = get_col(row, "cross_doc_results")
+        source_val = get_col(row, "source", "manual_upload")
+        email_sender_val = get_col(row, "email_sender")
+        email_meta_raw = get_col(row, "email_metadata_json")
+        
+        meta = json.loads(email_meta_raw) if email_meta_raw else {}
+        
+        runs.append({
+            "id": row["id"],
+            "filename": row["filename"],
+            "upload_time": row["upload_time"],
+            "extracted_data": json.loads(row["extracted_data"]),
+            "validation_results": json.loads(row["validation_results"]),
+            "decision": row["decision"],
+            "decision_reason": row["decision_reason"],
+            "amendment_draft": row["amendment_draft"],
+            "status": row["status"],
+            "edited_data": json.loads(row["edited_data"]) if row["edited_data"] else None,
+            "cross_doc_results": json.loads(cross_doc_raw) if cross_doc_raw else {"is_consistent": True, "discrepancies": []},
+            "source": source_val,
+            "email_sender": email_sender_val,
+            "email_subject": meta.get("subject"),
+            "email_body": meta.get("email_body"),
+            "received_at": meta.get("received_at")
+        })
+    return runs
+
+
 def update_run_status(run_id: int, status: str, edited_data: dict | None = None, amendment_draft: str | None = None) -> bool:
     """Updates the status or fields of a historical pipeline run."""
     conn = get_db_connection()
