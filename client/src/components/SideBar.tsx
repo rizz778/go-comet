@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard, History, Terminal, Shield } from 'lucide-react';
+import { LayoutDashboard, History, Terminal, Shield, Mail } from 'lucide-react';
 import { fetchRules } from '../api/rulesApi';
 import type { RulesResponse } from '../types/pipeline';
 
 interface SidebarProps {
-    activeTab: 'dashboard' | 'history' | 'query';
-    setActiveTab: (tab: 'dashboard' | 'history' | 'query') => void;
+    activeTab: 'dashboard' | 'history' | 'query' | 'supplier';
+    setActiveTab: (tab: 'dashboard' | 'history' | 'query' | 'supplier') => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
@@ -46,6 +46,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 >
                     <LayoutDashboard size={18} />
                     <span>Audit Desk</span>
+                </button>
+
+                <button
+                    onClick={() => setActiveTab('supplier')}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 text-left ${activeTab === 'supplier'
+                            ? 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 text-white border-l-4 border-indigo-500'
+                            : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                >
+                    <Mail size={18} />
+                    <span>Supplier Portal</span>
                 </button>
 
                 <button

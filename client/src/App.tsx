@@ -4,12 +4,13 @@ import { AnalyticsCards } from './components/AnalyticsCards';
 import { AuditDesk } from './pages/AuditDesk';
 import { HistoryRegistry } from './pages/HistoryRegistry';
 import { NLQueryAssistant } from './pages/NLQueryAssistant';
+import { SupplierPortal } from './pages/SupplierPortal';
 import type { PipelineRun, AnalyticsResponse } from './types/pipeline';
 import { fetchHistory } from './api/historyApi';
 import { fetchAnalytics } from './api/analyticsApi';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'query'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'query' | 'supplier'>('dashboard');
   const [activeRun, setActiveRun] = useState<PipelineRun | null>(null);
   const [historyRuns, setHistoryRuns] = useState<PipelineRun[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
@@ -52,6 +53,8 @@ function App() {
     switch (activeTab) {
       case 'dashboard':
         return 'Process incoming trade documentation and verify compliance.';
+      case 'supplier':
+        return 'Simulate the supplier interface to draft and dispatch email documents to the inbox queue.';
       case 'history':
         return 'Historical log of all document verification pipeline runs.';
       case 'query':
@@ -65,6 +68,8 @@ function App() {
     switch (activeTab) {
       case 'dashboard':
         return 'Audit Desk';
+      case 'supplier':
+        return 'Supplier Outbox Console';
       case 'history':
         return 'Run Registry';
       case 'query':
@@ -106,6 +111,15 @@ function App() {
               setActiveRun={setActiveRun}
               onRunCompleted={handleDataRefresh}
             />
+          </div>
+        )}
+
+        {activeTab === 'supplier' && (
+          <div className="flex-1 flex w-full">
+            <SupplierPortal onEmailSent={() => {
+              setActiveTab('dashboard');
+              loadHistoryAndStats();
+            }} />
           </div>
         )}
 
