@@ -21,7 +21,7 @@ class QueryRequest(BaseModel):
 #endpoint for uploading user doc for checking
 
 @router.post("/upload")
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(file: list[UploadFile] = File(...)):
     return await process_upload(file)
 
 #endpoint for fetching rules required on audit page 
