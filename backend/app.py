@@ -7,11 +7,13 @@ import os
 from config.settings import settings
 from routes.pipeline_routes import router as pipeline_router
 from services.storage import init_db
+from services.watcher import start_watcher
 
 # Initialize SQLite database schema
 init_db()
 
 app = FastAPI(title=settings.app_name, debug=settings.debug)
+start_watcher(app)
 
 app.add_middleware(
     CORSMiddleware,
