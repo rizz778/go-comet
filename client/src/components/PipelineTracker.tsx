@@ -7,13 +7,14 @@ interface PipelineTrackerProps {
 }
 
 export const PipelineTracker: React.FC<PipelineTrackerProps> = ({ step, logs }) => {
-    const consoleEndRef = useRef<HTMLDivElement>(null);
+    const consoleRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (consoleEndRef.current) {
-            consoleEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        if (consoleRef.current) {
+            consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
         }
     }, [logs]);
+
 
     const stepsList = [
         { key: 'uploading', label: 'File Upload', icon: FileUp },
@@ -71,7 +72,7 @@ export const PipelineTracker: React.FC<PipelineTrackerProps> = ({ step, logs }) 
             </div>
 
             {/* Real-time Log Console */}
-            <div className="bg-[#080A10] border border-slate-800 rounded-lg p-4 font-mono text-xs text-emerald-450 h-44 overflow-y-auto flex flex-col gap-1.5 shadow-inner">
+            <div ref={consoleRef} className="bg-[#080A10] border border-slate-800 rounded-lg p-4 font-mono text-xs text-emerald-450 h-44 overflow-y-auto flex flex-col gap-1.5 shadow-inner">
                 {logs.map((log, idx) => {
                     let typeColor = 'text-slate-400';
                     if (log.toLowerCase().includes('success') || log.toLowerCase().includes('completed') || log.toLowerCase().includes('saved')) {
@@ -92,7 +93,6 @@ export const PipelineTracker: React.FC<PipelineTrackerProps> = ({ step, logs }) 
                         <span>Agent processing...</span>
                     </div>
                 )}
-                <div ref={consoleEndRef} />
             </div>
         </div>
     );
