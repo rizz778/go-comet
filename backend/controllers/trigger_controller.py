@@ -62,3 +62,33 @@ async def process_email_trigger(
         if os.path.exists(folder_path):
             shutil.rmtree(folder_path)
         raise HTTPException(status_code=500, detail=f"Failed to trigger email queue: {str(e)}")
+
+async def get_incoming_emails_controller() -> list[dict]:
+    from services.storage import get_incoming_runs
+    try:
+        return get_incoming_runs()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch incoming emails: {str(e)}")
+
+async def get_processed_emails_controller() -> list[dict]:
+    from services.storage import get_processed_runs
+    try:
+        return get_processed_runs()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch processed emails: {str(e)}")
+
+async def resolve_processed_email_controller(
+    run_id: int, 
+    status: str, 
+    edited_data: dict | None = None, 
+    amendment_draft: str | None = None
+) -> dict:
+    from services.storage import update_run_status
+    try:
+        success = update_run_status(run_id, status, edited_data, amendment_draft)
+        if not success:
+            raise HTTPException(status_code=404, detail="Run ID not found.")
+        return {"status": "success", "message": f"Email run {run_id} resolved/processed successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to resolve email run: {str(e)}")
+
