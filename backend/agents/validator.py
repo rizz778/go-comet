@@ -88,44 +88,148 @@ def validate_field(field_name: str, rule: dict, extracted_value: str | None) -> 
         
     return "match", None, val_str, "Default match (No matching rules executed)."
 
+def validate_cross_document_consistency(extracted_data: dict, logs: list[str]) -> dict:
+    """Compares core fields across all parsed documents to detect discrepancies.
+    
+    Returns a dictionary with consistency status and list of discrepancy objects.
+    """
+    cross_doc_results = {
+        "is_consistent": True,
+        "discrepancies": []
+    }
+    
+    if len(extracted_data) <= 1:
+        return cross_doc_results
+        
+    logs.append("Validator Agent: Running cross-document consistency checks...")
+    cross_fields = ["consignee_name", "hs_code", "gross_weight", "incoterms", "invoice_number"]
+    
+    for field in cross_fields:
+        field_values = {}
+        for doc_name, doc_data in extracted_data.items():
+            if not isinstance(doc_data, dict):
+                continue
+            field_data = doc_data.get(field) or {}
+            val = field_data.get("value")
+            if val is not None and str(val).strip() != "" and str(val).lower() != "null":
+                field_values[doc_name] = str(val).strip()
+                
+        if len(field_values) > 1:
+            distinct_values = {}
+            for doc, raw_val in field_values.items():
+                norm_val = raw_val.lower().strip()
+                if field == "gross_weight":
+                    cleaned = clean_weight(raw_val)
+                    if cleaned is not None:
+                        norm_val = f"{cleaned:.2f}"
+                elif field == "invoice_number":
+                    norm_val = re.sub(r"[^\w]", "", raw_val).lower()
+                elif field == "hs_code":
+                    norm_val = re.sub(r"[^\d]", "", raw_val)
+                    if len(norm_val) >= 4:
+                        norm_val = norm_val[:4]
+                elif field == "consignee_name":
+                    norm_val = re.sub(r"[^\w\s]", "", raw_val).lower().strip()
+                    norm_val = norm_val.replace("limited", "ltd").replace("incorporated", "inc").replace("corporation", "corp")
+                
+                if norm_val not in distinct_values:
+                    distinct_values[norm_val] = []
+                distinct_values[norm_val].append((doc, raw_val))
+            
+            if len(distinct_values) > 1:
+                cross_doc_results["is_consistent"] = False
+                discrepancy_detail = {
+                    "field": field,
+                    "values": field_values,
+                    "reason": f"Discrepancy in '{field.replace('_', ' ')}' across documents: " + 
+                              ", ".join(f"'{doc}': {val}" for doc, val in field_values.items())
+                }
+                cross_doc_results["discrepancies"].append(discrepancy_detail)
+                logs.append(f"Validator Agent: Cross-doc discrepancy found on '{field}': {list(field_values.values())}")
+                
+    return cross_doc_results
+
 def validator_agent(state: PipelineState) -> PipelineState:
     logs = list(state.get("logs", []))
     logs.append("Validator Agent: Starting deterministic validation...")
     
-    extracted_data = state["extracted_data"]
+    extracted_data = state.get("extracted_data", {})
     rules = load_rules()
     validation_results = {}
     
-    # Extract fields list
+    filenames = state.get("filenames", [])
+    if not filenames:
+        if "filename" in state:
+            filenames = [state["filename"]]
+        else:
+            filenames = ["document.pdf"]
+            
+    is_multidoc = False
+    if extracted_data:
+        first_key = list(extracted_data.keys())[0]
+        if first_key in filenames or first_key.endswith((".pdf", ".png", ".jpg", ".jpeg")):
+            is_multidoc = True
+            
     fields = [
         "consignee_name", "hs_code", "port_of_loading", "port_of_discharge",
         "incoterms", "description_of_goods", "gross_weight", "invoice_number"
     ]
     
-    for field in fields:
-        field_data = extracted_data.get(field) or {"value": None, "confidence": 0.0}
-        value = field_data.get("value")
-        confidence = field_data.get("confidence", 1.0)
-        rule = rules.get(field)
-        
-        # 1. Deterministic Rule Matching
-        result, expected, found, reason = validate_field(field, rule, value)
-        
-        # 2. Safety Downgrade for Low Confidence Extractions
-        if confidence < 0.70:
-            result = "uncertain"
-            reason = f"Extraction confidence too low to trust ({confidence:.2f}). " + (reason or "")
+    if is_multidoc:
+        for doc_name, doc_data in extracted_data.items():
+            doc_results = {}
+            for field in fields:
+                field_data = doc_data.get(field) or {"value": None, "confidence": 0.0}
+                value = field_data.get("value")
+                confidence = field_data.get("confidence", 1.0)
+                rule = rules.get(field)
+                
+                result, expected, found, reason = validate_field(field, rule, value)
+                
+                if confidence < 0.70:
+                    result = "uncertain"
+                    reason = f"Extraction confidence too low to trust ({confidence:.2f}). " + (reason or "")
+                    
+                doc_results[field] = {
+                    "result": result,
+                    "expected_value": expected,
+                    "found_value": found,
+                    "reason": reason
+                }
+            validation_results[doc_name] = doc_results
+            logs.append(f"Validator Agent: Completed individual validation for {doc_name}.")
             
-        validation_results[field] = {
-            "result": result,
-            "expected_value": expected,
-            "found_value": found,
-            "reason": reason
+        # Run cross-document check
+        cross_doc_results = validate_cross_document_consistency(extracted_data, logs)
+    else:
+        for field in fields:
+            field_data = extracted_data.get(field) or {"value": None, "confidence": 0.0}
+            value = field_data.get("value")
+            confidence = field_data.get("confidence", 1.0)
+            rule = rules.get(field)
+            
+            result, expected, found, reason = validate_field(field, rule, value)
+            
+            if confidence < 0.70:
+                result = "uncertain"
+                reason = f"Extraction confidence too low to trust ({confidence:.2f}). " + (reason or "")
+                
+            validation_results[field] = {
+                "result": result,
+                "expected_value": expected,
+                "found_value": found,
+                "reason": reason
+            }
+        logs.append("Validator Agent: Completed validation for single document.")
+        cross_doc_results = {
+            "is_consistent": True,
+            "discrepancies": []
         }
         
     logs.append("Validator Agent: Validation completed.")
     return {
         **state,
         "validation_results": validation_results,
+        "cross_doc_results": cross_doc_results,
         "logs": logs
     }
