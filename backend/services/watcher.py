@@ -4,11 +4,17 @@ import json
 import shutil
 import asyncio
 from graph.graph import pipeline_graph
+from config.settings import settings
 
 # Setup paths relative to backend directory
-BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-INBOX_DIR = os.path.join(BACKEND_DIR, "inbox")
-PROCESSED_DIR = os.path.join(BACKEND_DIR, "processed")
+def get_absolute_path(path: str) -> str:
+    if os.path.isabs(path):
+        return path
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.abspath(os.path.join(backend_dir, path))
+
+INBOX_DIR = get_absolute_path(settings.inbox_dir)
+PROCESSED_DIR = get_absolute_path(settings.processed_dir)
 
 async def watch_inbox_loop():
     """Asynchronous background loop to check the inbox/ directory for new folders."""

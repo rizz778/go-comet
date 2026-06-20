@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ClipboardCheck, Info, Database, Mail, Save, CheckCircle, Send, AlertTriangle } from 'lucide-react';
-import type { PipelineRun, TradeDocumentExtraction } from '../types/pipeline';
+import type { PipelineRun } from '../types/pipeline';
 import { updateStatus } from '../api/statusApi';
 import { resolveProcessedEmail } from '../api/triggerApi';
 
@@ -43,7 +43,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ run, onRunUpdated }) =
                         newFields[docName] = docFields;
                     }
                 });
-                
+
                 const docs = Object.keys(run.extracted_data);
                 if (docs.length > 0 && (!activeDoc || !docs.includes(activeDoc))) {
                     setActiveDoc(docs[0]);
@@ -242,7 +242,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ run, onRunUpdated }) =
 
     const docKey = isMultiDoc ? activeDoc : 'single';
     const activeDocFields = fields[docKey] || {};
-    
+
     // Always show draft mail if there are discrepancies or if the decision is not auto-approved
     const showDraftEmail = run.decision !== 'auto_approve' || run.amendment_draft;
 
@@ -267,8 +267,8 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ run, onRunUpdated }) =
 
             {message && (
                 <div className={`p-4 rounded-lg text-sm font-medium border ${message.type === 'success'
-                        ? 'bg-emerald-500/5 text-emerald-400 border-emerald-500/20'
-                        : 'bg-rose-500/5 text-rose-455 border-rose-500/20'
+                    ? 'bg-emerald-500/5 text-emerald-400 border-emerald-500/20'
+                    : 'bg-rose-500/5 text-rose-455 border-rose-500/20'
                     }`}>
                     {message.text}
                 </div>
@@ -323,11 +323,10 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ run, onRunUpdated }) =
                                 key={docName}
                                 type="button"
                                 onClick={() => setActiveDoc(docName)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer transition-all duration-300 ${
-                                    activeDoc === docName
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer transition-all duration-300 ${activeDoc === docName
                                         ? 'bg-indigo-500 text-white shadow-md'
                                         : 'bg-[#0B0F19]/30 text-slate-400 hover:text-white border border-slate-800'
-                                }`}
+                                    }`}
                             >
                                 {docName}
                             </button>
@@ -348,12 +347,12 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ run, onRunUpdated }) =
                         const docData = isMultiDoc
                             ? (run.edited_data || run.extracted_data as any)[activeDoc]
                             : (run.edited_data || run.extracted_data as any);
-                        
+
                         const originalField = docData?.[key];
                         const valResult = isMultiDoc
                             ? (run.validation_results as any)[activeDoc]?.[key]
                             : (run.validation_results as any)[key];
-                            
+
                         const val = activeDocFields[key] || '';
                         const confidence = originalField?.confidence ?? 1.0;
 

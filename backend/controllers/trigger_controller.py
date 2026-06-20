@@ -4,6 +4,9 @@ import shutil
 from datetime import datetime
 from fastapi import UploadFile, HTTPException
 from config.settings import settings
+from services.storage import get_incoming_runs, get_processed_runs, update_run_status
+
+
 
 async def process_email_trigger(
     sender: str,
@@ -22,8 +25,13 @@ async def process_email_trigger(
             )
             
     # 2. Setup directory paths
-    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    inbox_dir = os.path.join(backend_dir, "inbox")
+    def get_absolute_path(path: str) -> str:
+        if os.path.isabs(path):
+            return path
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        return os.path.abspath(os.path.join(backend_dir, path))
+
+    inbox_dir = get_absolute_path(settings.inbox_dir)
     
     # Create unique folder name using timestamp to prevent collisions
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -63,19 +71,26 @@ async def process_email_trigger(
             shutil.rmtree(folder_path)
         raise HTTPException(status_code=500, detail=f"Failed to trigger email queue: {str(e)}")
 
+
+
+
 async def get_incoming_emails_controller() -> list[dict]:
-    from services.storage import get_incoming_runs
     try:
         return get_incoming_runs()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch incoming emails: {str(e)}")
 
+
+
+
 async def get_processed_emails_controller() -> list[dict]:
-    from services.storage import get_processed_runs
     try:
         return get_processed_runs()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch processed emails: {str(e)}")
+
+
+
 
 async def resolve_processed_email_controller(
     run_id: int, 
@@ -83,7 +98,6 @@ async def resolve_processed_email_controller(
     edited_data: dict | None = None, 
     amendment_draft: str | None = None
 ) -> dict:
-    from services.storage import update_run_status
     try:
         success = update_run_status(run_id, status, edited_data, amendment_draft)
         if not success:

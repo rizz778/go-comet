@@ -36,13 +36,11 @@ def execute_nl_query(user_query: str) -> dict:
         
     # 2. Execute SQL query on SQLite
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(sql_query)
-        rows = cursor.fetchall()
-        
-        results = [dict(r) for r in rows]
-        conn.close()
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql_query)
+            rows = cursor.fetchall()
+            results = [dict(r) for r in rows]
     except Exception as e:
         return {
             "success": False,
