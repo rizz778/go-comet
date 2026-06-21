@@ -22,9 +22,11 @@ For each field, return:
 - source_snippet: the exact line or phrase in the document this was read 
   from, or null if not found
 
-CRITICAL: If a field is not present, illegible, or you are not reasonably 
-confident, return null for value with low confidence. Do NOT invent a 
-plausible-looking value. A missing field is far better than a wrong one.
+CRITICAL:
+- If a field is confidently absent or not applicable to this document (e.g., port of loading on a commercial invoice), return null for the value with HIGH confidence (0.9-1.0).
+- If a field is present or expected but is illegible, blurry, or you cannot read it with certainty, return null for the value with LOW confidence (0.0-0.4).
+- Do NOT invent a plausible-looking value. A missing field is far better than a wrong one.
+
 
 Also return extraction_warnings: a list of strings noting any document-level 
 issues (e.g. "image appears rotated", "page partially cut off", "low 

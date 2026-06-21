@@ -16,18 +16,18 @@ class ProcessedEmailRequest(BaseModel):
     edited_data: Optional[Dict] = None
     amendment_draft: Optional[str] = None
 
-@router.post("/trigger-email")
-async def trigger_email(
-    sender: str = Form(...),
-    subject: str = Form(...),
-    email_body: str = Form(...),
-    file: list[UploadFile] = File(...)
-):
-    """Endpoint simulating an incoming supplier email.
+# @router.post("/trigger-email")
+# async def trigger_email(
+#     sender: str = Form(...),
+#     subject: str = Form(...),
+#     email_body: str = Form(...),
+#     file: list[UploadFile] = File(...)
+# ):
+#     """Endpoint simulating an incoming supplier email.
     
-    Accepts sender, subject, body, and attachment files.
-    """
-    return await process_email_trigger(sender, subject, email_body, file)
+#     Accepts sender, subject, body, and attachment files.
+#     """
+#     return await process_email_trigger(sender, subject, email_body, file)
 
 @router.post("/incoming")
 async def trigger_incoming_email(

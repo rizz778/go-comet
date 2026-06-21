@@ -47,8 +47,12 @@ def validator_agent(state: PipelineState) -> PipelineState:
                 result, expected, found, reason = validate_field(field, rule, value)
                 
                 if confidence < 0.70:
-                    result = "uncertain"
-                    reason = f"Extraction confidence too low to trust ({confidence:.2f}). " + (reason or "")
+                    if result == "skipped":
+                        result = "uncertain"
+                        reason = f"Field was not found, but document parsing confidence was too low ({confidence:.2f})."
+                    else:
+                        result = "uncertain"
+                        reason = f"Extraction confidence too low to trust ({confidence:.2f}). " + (reason or "")
                     
                 doc_results[field] = {
                     "result": result,
@@ -71,8 +75,12 @@ def validator_agent(state: PipelineState) -> PipelineState:
             result, expected, found, reason = validate_field(field, rule, value)
             
             if confidence < 0.70:
-                result = "uncertain"
-                reason = f"Extraction confidence too low to trust ({confidence:.2f}). " + (reason or "")
+                if result == "skipped":
+                    result = "uncertain"
+                    reason = f"Field was not found, but document parsing confidence was too low ({confidence:.2f})."
+                else:
+                    result = "uncertain"
+                    reason = f"Extraction confidence too low to trust ({confidence:.2f}). " + (reason or "")
                 
             validation_results[field] = {
                 "result": result,
@@ -85,6 +93,29 @@ def validator_agent(state: PipelineState) -> PipelineState:
             "is_consistent": True,
             "discrepancies": []
         }
+
+    # Run shipment-level check for missing fields
+    for field in fields:
+        rule = rules.get(field)
+        if not rule:
+            continue
+            
+        if is_multidoc:
+            all_skipped = True
+            for doc_name, doc_results in validation_results.items():
+                if doc_results[field]["result"] != "skipped":
+                    all_skipped = False
+                    break
+            
+            if all_skipped:
+                # If it's skipped in all docs, it means it's missing from the shipment
+                for doc_name in validation_results.keys():
+                    validation_results[doc_name][field]["result"] = "mismatch"
+                    validation_results[doc_name][field]["reason"] = f"Required field '{field}' was not found in any document in the shipment."
+        else:
+            if validation_results[field]["result"] == "skipped":
+                validation_results[field]["result"] = "mismatch"
+                validation_results[field]["reason"] = f"Required field '{field}' was not found in the document."
         
     logs.append("Validator Agent: Validation completed.")
     return {

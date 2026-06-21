@@ -13,6 +13,7 @@ def clean_weight(weight_str: str | None) -> float | None:
     except Exception:
         return None
 
+
 def validate_field(field_name: str, rule: dict, extracted_value: str | None) -> tuple[str, str | None, str | None, str]:
     """Deterministically checks a field's value against its rule definition."""
     if not rule:
@@ -22,7 +23,7 @@ def validate_field(field_name: str, rule: dict, extracted_value: str | None) -> 
     
     # Check if value was extracted at all
     if extracted_value is None or str(extracted_value).strip() == "" or str(extracted_value).lower() == "null":
-        return "mismatch", "Value present", "null", f"Required field '{field_name}' was not found in the document."
+        return "skipped", None, "null", f"Field '{field_name}' was not found in the document."
 
     val_str = str(extracted_value).strip()
     
