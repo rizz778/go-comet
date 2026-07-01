@@ -98,7 +98,7 @@ function App() {
           </div>
           <div className="flex items-center gap-2 bg-emerald-500/5 border border-emerald-500/10 px-3.5 py-1.5 rounded-full text-[10px] font-semibold text-emerald-400 tracking-wide shadow-sm">
             <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
-            <span>Nova Core Connected</span>
+            <span>Connected</span>
           </div>
         </header>
 
