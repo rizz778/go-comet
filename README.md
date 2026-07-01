@@ -173,3 +173,90 @@ curl.exe -X POST "http://127.0.0.1:8000/pipeline/incoming" `
   -F "email_body=Dear Team, attached are the Invoice and Packing List for the upcoming trade shipment. Please process." `
   -F "file=@backend/sample_docs/clean_invoice.pdf"
 ```
+
+---
+
+## 🚢 Deployment Guide
+
+For deploying the platform in a production environment, there are two primary methods:
+
+### Method 1: Containerized Deployment (Docker Compose) - *Recommended*
+
+This is the easiest and most robust method. It sets up both services, manages directory permissions, handles database persistence volumes, and proxies API calls securely.
+
+1. **Configure Environment Variables:**
+   Ensure the `backend/.env` file is populated with valid credentials (`GEMINI_API_KEY`, `MISTRAL_API_KEY`, etc.).
+
+2. **Launch Services:**
+   From the root folder containing `docker-compose.yml`, run:
+   ```bash
+   docker-compose up -d --build
+   ```
+
+3. **Verify Running Containers:**
+   ```bash
+   docker-compose ps
+   ```
+   * **Frontend UI Console:** Available at `http://localhost:3000`
+   * **Backend REST API:** Available at `http://localhost:8000`
+   * **Watcher Ingestion Directories:** Automatically managed and persisted via named Docker volumes (`sqlite_data`, `watcher_inbox`, and `watcher_processed`).
+
+---
+
+### Method 2: Manual Server Deployment (VPS / EC2 Instance)
+
+For deploying manually onto a Linux server (e.g., Ubuntu):
+
+#### 1. Setup Backend
+* Clone the codebase, set up a virtual environment, and install dependencies:
+  ```bash
+  cd backend
+  python3 -m venv venv
+  source venv/bin/activate
+  pip install -r requirements.txt
+  ```
+* Run Uvicorn in the background using a process manager like **PM2** or **systemd**:
+  ```bash
+  pm2 start "uvicorn app:app --host 0.0.0.0 --port 8000" --name "trade-compliance-backend"
+  ```
+  *(The background inbox watcher starts automatically on application startup.)*
+
+#### 2. Setup Frontend
+* Install Node.js, install client dependencies, and build static production assets:
+  ```bash
+  cd ../client
+  npm install
+  npm run build
+  ```
+  This creates a production folder `client/dist/`.
+
+#### 3. Setup Reverse Proxy (Nginx)
+Install Nginx and configure a server block (e.g. `/etc/nginx/sites-available/default`) to serve the built static assets and proxy API endpoints:
+
+```nginx
+server {
+    listen 80;
+    server_name your_domain_or_ip;
+
+    # Serve built React static assets
+    location / {
+        root /path/to/go-comet/assignment/client/dist;
+        index index.html index.htm;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy pipeline API calls to Uvicorn running on 8000
+    location /pipeline {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+* Restart Nginx:
+  ```bash
+  sudo systemctl restart nginx
+  ```
+
