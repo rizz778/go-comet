@@ -128,7 +128,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ run, onRunUpdated }) =
         try {
             const editedPayload = buildEditedDataPayload();
             if (run.source === 'inbox') {
-                await resolveProcessedEmail(runId, status, editedPayload, emailBody || null);
+                await resolveProcessedEmail(runId, status, editedPayload, emailBody || undefined);
             } else {
                 await updateStatus(runId, {
                     status: status,
@@ -151,7 +151,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ run, onRunUpdated }) =
         try {
             const editedPayload = buildEditedDataPayload();
             if (run.source === 'inbox') {
-                await resolveProcessedEmail(runId, 'approved', editedPayload, emailBody || null);
+                await resolveProcessedEmail(runId, 'approved', editedPayload, emailBody || undefined);
             } else {
                 await updateStatus(runId, {
                     status: 'approved',

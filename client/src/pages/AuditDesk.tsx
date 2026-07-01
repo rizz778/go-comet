@@ -5,7 +5,7 @@ import { ReviewPanel } from '../components/ReviewPanel';
 import type { PipelineRun } from '../types/pipeline';
 import { uploadDocument } from '../api/uploadApi';
 import { fetchIncomingEmails, fetchProcessedEmails } from '../api/triggerApi';
-import { Mail, Upload, Clock, CheckCircle2, ChevronRight, RefreshCw, Inbox } from 'lucide-react';
+import { Mail, Upload, Clock, RefreshCw, Inbox } from 'lucide-react';
 
 interface AuditDeskProps {
     activeRun: PipelineRun | null;
